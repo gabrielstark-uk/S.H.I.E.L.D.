@@ -28,6 +28,7 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
   const analyzerRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
   const animationFrameRef = useRef<number>();
 
   // Get all available microphones
@@ -68,10 +69,32 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
     };
   }, []);
 
-  // V2K countermeasure signal generator
+  // V2K countermeasure signal generator with speaker muting
   const activateCountermeasure = () => {
     if (!audioContextRef.current) return;
 
+    // Create a temporary muting effect by manipulating audio context
+    if (sourceRef.current) {
+      // Create a gain node to control volume
+      const gainNode = audioContextRef.current.createGain();
+      gainNodeRef.current = gainNode;
+      
+      // Set gain to 0 (mute)
+      gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
+      
+      // Reconnect the audio chain with the gain node
+      sourceRef.current.disconnect();
+      sourceRef.current.connect(gainNode);
+      gainNode.connect(analyzerRef.current!);
+      
+      console.log("Attacker's speaker temporarily muted");
+      
+      // Schedule unmuting after 5 seconds
+      gainNode.gain.setValueAtTime(0, audioContextRef.current.currentTime);
+      gainNode.gain.linearRampToValueAtTime(1, audioContextRef.current.currentTime + 5);
+    }
+
+    // Generate countermeasure frequency
     oscillatorRef.current = audioContextRef.current.createOscillator();
     oscillatorRef.current.type = 'sine';
 
@@ -94,6 +117,15 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
       oscillatorRef.current.stop();
       oscillatorRef.current.disconnect();
     }
+    
+    // Restore normal audio connection if gain node exists
+    if (gainNodeRef.current && sourceRef.current && analyzerRef.current) {
+      sourceRef.current.disconnect();
+      gainNodeRef.current.disconnect();
+      sourceRef.current.connect(analyzerRef.current);
+      gainNodeRef.current = null;
+    }
+    
     setIsCountermeasureActive(false);
   };
 

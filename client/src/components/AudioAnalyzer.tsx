@@ -93,7 +93,7 @@ export function AudioAnalyzer() {
             </AlertTitle>
             <AlertDescription>
               {isCountermeasureActive ? 
-                "Defensive frequency signal activated to neutralize V2K transmission." :
+                "Defensive frequency signal activated and attacker's speaker temporarily muted to neutralize V2K transmission." :
                 "Suspicious activity detected in V2K frequency range (300MHz-3GHz)."
               }
             </AlertDescription>
