@@ -66,10 +66,7 @@ export function FrequencyDisplay({ data, sampleRate = 192000 }: FrequencyDisplay
 
     // Add frequency ranges markers
     const ranges = [
-      { min: 20, max: 100, label: "Infrasonic" },
-      { min: 100, max: 3000, label: "Adult Speech" },
-      { min: 3000, max: 8000, label: "Child Speech" },
-      { min: 8000, max: 20000, label: "Ultrasonic" },
+      { min: 2000, max: 10000, label: "Sound Cannon Range" },
       { min: 300e6, max: 3e9, label: "V2K Range" }
     ];
 

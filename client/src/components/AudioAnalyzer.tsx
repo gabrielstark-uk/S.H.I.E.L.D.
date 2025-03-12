@@ -5,6 +5,13 @@ import { FrequencyDisplay } from "./FrequencyDisplay";
 import { Mic, MicOff } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Shield } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function AudioAnalyzer() {
   const { 
@@ -14,7 +21,9 @@ export function AudioAnalyzer() {
     soundCannonDetected, 
     v2kDetected,
     isCountermeasureActive,
-    ageTargetingDetected,
+    availableMicrophones,
+    selectedMicrophone,
+    setSelectedMicrophone,
     startRecording, 
     stopRecording 
   } = useAudioAnalyzer();
@@ -24,22 +33,41 @@ export function AudioAnalyzer() {
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>Frequency Protection System</span>
-          <Button
-            variant={isRecording ? "destructive" : "default"}
-            onClick={isRecording ? stopRecording : startRecording}
-          >
-            {isRecording ? (
-              <>
-                <MicOff className="mr-2 h-4 w-4" />
-                Stop Recording
-              </>
-            ) : (
-              <>
-                <Mic className="mr-2 h-4 w-4" />
-                Start Recording
-              </>
-            )}
-          </Button>
+          <div className="flex items-center gap-4">
+            <Select
+              value={selectedMicrophone || undefined}
+              onValueChange={setSelectedMicrophone}
+              disabled={isRecording}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Select microphone" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableMicrophones.map((mic) => (
+                  <SelectItem key={mic.deviceId} value={mic.deviceId}>
+                    {mic.label || `Microphone ${mic.deviceId.slice(0, 8)}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant={isRecording ? "destructive" : "default"}
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={!selectedMicrophone}
+            >
+              {isRecording ? (
+                <>
+                  <MicOff className="mr-2 h-4 w-4" />
+                  Stop Recording
+                </>
+              ) : (
+                <>
+                  <Mic className="mr-2 h-4 w-4" />
+                  Start Recording
+                </>
+              )}
+            </Button>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -64,21 +92,6 @@ export function AudioAnalyzer() {
               {isCountermeasureActive ? 
                 "Defensive frequency signal activated to neutralize V2K transmission." :
                 "Suspicious activity detected in V2K frequency range (300MHz-3GHz)."
-              }
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {ageTargetingDetected && (
-          <Alert variant={isCountermeasureActive ? "default" : "destructive"}>
-            <Shield className="h-4 w-4" />
-            <AlertTitle>
-              Age-Targeted Frequencies Detected! {isCountermeasureActive && "- Countermeasures Active"}
-            </AlertTitle>
-            <AlertDescription>
-              {isCountermeasureActive ? 
-                "Defensive signal activated to disrupt age-specific targeting (3-8kHz range)." :
-                "Suspicious concentration of frequencies in child speech range (3-8kHz)."
               }
             </AlertDescription>
           </Alert>

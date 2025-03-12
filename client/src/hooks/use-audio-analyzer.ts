@@ -9,7 +9,9 @@ interface AudioAnalyzerResult {
   soundCannonDetected: boolean;
   v2kDetected: boolean;
   isCountermeasureActive: boolean;
-  ageTargetingDetected: boolean;
+  availableMicrophones: MediaDeviceInfo[];
+  selectedMicrophone: string | null;
+  setSelectedMicrophone: (deviceId: string) => void;
 }
 
 export function useAudioAnalyzer(): AudioAnalyzerResult {
@@ -19,7 +21,8 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
   const [soundCannonDetected, setSoundCannonDetected] = useState(false);
   const [v2kDetected, setV2kDetected] = useState(false);
   const [isCountermeasureActive, setIsCountermeasureActive] = useState(false);
-  const [ageTargetingDetected, setAgeTargetingDetected] = useState(false);
+  const [availableMicrophones, setAvailableMicrophones] = useState<MediaDeviceInfo[]>([]);
+  const [selectedMicrophone, setSelectedMicrophone] = useState<string | null>(null);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyzerRef = useRef<AnalyserNode | null>(null);
@@ -27,28 +30,42 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
   const oscillatorRef = useRef<OscillatorNode | null>(null);
   const animationFrameRef = useRef<number>();
 
-  // Simulated countermeasure signal generator
+  // Get all available microphones
+  useEffect(() => {
+    async function getMicrophones() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const mics = devices.filter(device => device.kind === 'audioinput');
+        setAvailableMicrophones(mics);
+        if (mics.length > 0 && !selectedMicrophone) {
+          setSelectedMicrophone(mics[0].deviceId);
+        }
+      } catch (error) {
+        console.error("Error accessing microphones:", error);
+      }
+    }
+
+    getMicrophones();
+
+    // Listen for device changes
+    navigator.mediaDevices.addEventListener('devicechange', getMicrophones);
+    return () => {
+      navigator.mediaDevices.removeEventListener('devicechange', getMicrophones);
+    };
+  }, []);
+
+  // V2K countermeasure signal generator
   const activateCountermeasure = () => {
     if (!audioContextRef.current) return;
 
     oscillatorRef.current = audioContextRef.current.createOscillator();
     oscillatorRef.current.type = 'sine';
 
-    if (v2kDetected) {
-      // V2K countermeasure - high frequency interference
-      oscillatorRef.current.frequency.setValueCurveAtTime(
-        [300e3, 400e3, 300e3], // Simulated high-frequency response
-        audioContextRef.current.currentTime,
-        1.0
-      );
-    } else if (ageTargetingDetected) {
-      // Age targeting countermeasure - frequency jamming
-      oscillatorRef.current.frequency.setValueCurveAtTime(
-        [3000, 8000, 3000], // Child speech range interference
-        audioContextRef.current.currentTime,
-        1.0
-      );
-    }
+    oscillatorRef.current.frequency.setValueCurveAtTime(
+      [300e3, 400e3, 300e3], // Simulated high-frequency response
+      audioContextRef.current.currentTime,
+      1.0
+    );
 
     // Connect but don't output to speakers
     oscillatorRef.current.connect(analyzerRef.current!);
@@ -80,8 +97,13 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
 
   const startRecording = async () => {
     try {
+      if (!selectedMicrophone) {
+        throw new Error("No microphone selected");
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: { 
+          deviceId: { exact: selectedMicrophone },
           echoCancellation: false,
           noiseSuppression: false,
           autoGainControl: false,
@@ -133,20 +155,10 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
         const newV2kDetected = v2kActivity > (v2kEndBin - v2kStartBin) * 0.2;
         setV2kDetected(newV2kDetected);
 
-        // Check for age-targeting frequencies (child speech range: 3-8kHz)
-        const childStartBin = Math.floor(3000 / binSize);
-        const childEndBin = Math.floor(8000 / binSize);
-        const childRangeActivity = dataArray
-          .slice(childStartBin, childEndBin)
-          .filter(amplitude => amplitude > 160).length;
-
-        const newAgeTargetingDetected = childRangeActivity > (childEndBin - childStartBin) * 0.4;
-        setAgeTargetingDetected(newAgeTargetingDetected);
-
-        // Activate countermeasures if threats detected
-        if ((newV2kDetected || newAgeTargetingDetected) && !isCountermeasureActive) {
+        // Activate countermeasures if V2K is detected
+        if (newV2kDetected && !isCountermeasureActive) {
           activateCountermeasure();
-        } else if (!newV2kDetected && !newAgeTargetingDetected && isCountermeasureActive) {
+        } else if (!newV2kDetected && isCountermeasureActive) {
           deactivateCountermeasure();
         }
 
@@ -177,7 +189,6 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
     setSampleRate(null);
     setSoundCannonDetected(false);
     setV2kDetected(false);
-    setAgeTargetingDetected(false);
   };
 
   return {
@@ -189,6 +200,8 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
     soundCannonDetected,
     v2kDetected,
     isCountermeasureActive,
-    ageTargetingDetected
+    availableMicrophones,
+    selectedMicrophone,
+    setSelectedMicrophone
   };
 }
