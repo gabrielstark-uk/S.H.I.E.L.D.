@@ -35,19 +35,26 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
         audio: { 
           echoCancellation: false,
           noiseSuppression: false,
-          autoGainControl: false
+          autoGainControl: false,
+          // Extended frequency range settings
+          sampleRate: 192000, // Higher sample rate for better frequency detection
+          channelCount: 1
         } 
       });
 
-      audioContextRef.current = new AudioContext();
+      audioContextRef.current = new AudioContext({
+        sampleRate: 192000 // Higher sample rate for extended frequency analysis
+      });
       setSampleRate(audioContextRef.current.sampleRate);
 
       analyzerRef.current = audioContextRef.current.createAnalyser();
       sourceRef.current = audioContextRef.current.createMediaStreamSource(stream);
 
-      // Optimize for sonic wave detection
-      analyzerRef.current.fftSize = 4096; // Higher resolution for better frequency detection
-      analyzerRef.current.smoothingTimeConstant = 0.2; // Lower smoothing for faster response
+      // Enhanced settings for broader frequency detection
+      analyzerRef.current.fftSize = 8192; // Increased for higher resolution
+      analyzerRef.current.smoothingTimeConstant = 0.1; // Lower for faster response
+      analyzerRef.current.minDecibels = -100; // Lower threshold for subtle signals
+      analyzerRef.current.maxDecibels = -30; // Upper threshold for strong signals
 
       sourceRef.current.connect(analyzerRef.current);
 
@@ -56,8 +63,6 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
 
         const dataArray = new Uint8Array(analyzerRef.current.frequencyBinCount);
         analyzerRef.current.getByteFrequencyData(dataArray);
-
-        // Focus on sonic wave frequencies (20Hz - 20kHz)
         setFrequencyData(dataArray);
 
         animationFrameRef.current = requestAnimationFrame(updateFrequencyData);

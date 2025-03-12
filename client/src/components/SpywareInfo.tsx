@@ -9,23 +9,33 @@ export function SpywareInfo() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
-            Common Spyware Frequency Ranges
+            Frequency Range Analysis
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Alert>
             <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>High Frequency (18kHz - 24kHz)</AlertTitle>
+            <AlertTitle>Voice-to-Skull (V2K) Range</AlertTitle>
             <AlertDescription>
-              Often used by covert recording devices and ultrasonic beacons
+              300MHz - 3GHz: Microwave frequencies associated with potential V2K transmission
             </AlertDescription>
           </Alert>
-          
+
           <Alert>
             <Info className="h-4 w-4" />
-            <AlertTitle>Mid Frequency (8kHz - 12kHz)</AlertTitle>
-            <AlertDescription>
-              Common range for hidden microphones and voice recorders
+            <AlertTitle>Age-Specific Speech Ranges</AlertTitle>
+            <AlertDescription className="space-y-2">
+              <p>Adult Speech: 100Hz - 3kHz</p>
+              <p>Child Speech: 3kHz - 8kHz</p>
+            </AlertDescription>
+          </Alert>
+
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertTitle>Special Ranges</AlertTitle>
+            <AlertDescription className="space-y-2">
+              <p>Infrasonic: 20Hz - 100Hz</p>
+              <p>Ultrasonic: 8kHz - 20kHz</p>
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -33,13 +43,13 @@ export function SpywareInfo() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Security Best Practices</CardTitle>
+          <CardTitle>Detection Guidelines</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <p>1. Regularly scan for unusual frequencies</p>
-          <p>2. Be aware of your surroundings</p>
-          <p>3. Keep your devices updated</p>
-          <p>4. Use physical privacy measures (covers, blockers)</p>
+          <p>1. Monitor for unusual frequency patterns</p>
+          <p>2. Check age-specific frequency anomalies</p>
+          <p>3. Watch for microwave frequency spikes</p>
+          <p>4. Document any persistent signals</p>
         </CardContent>
       </Card>
     </div>
