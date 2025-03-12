@@ -12,8 +12,14 @@
     background: linear-gradient(180deg, white 0%, #E8F0FF 25%, #C5D9FF 50%, #8FB3FF 75%, #1E3A8A 100%);
     min-height: 100vh;
   }
+}
 
+@layer components {
   .card {
-    @apply bg-white/90 backdrop-blur-sm;
+    @apply bg-white/95 backdrop-blur-sm shadow-lg;
+  }
+
+  .alert {
+    @apply bg-white/95;
   }
 }

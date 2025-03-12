@@ -29,13 +29,13 @@ export function AudioAnalyzer() {
   } = useAudioAnalyzer();
 
   return (
-    <Card className="w-full">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>Frequency Protection System</span>
           <div className="flex items-center gap-4">
             <Select
-              value={selectedMicrophone || undefined}
+              value={selectedMicrophone || ""}
               onValueChange={setSelectedMicrophone}
               disabled={isRecording}
             >
@@ -44,7 +44,10 @@ export function AudioAnalyzer() {
               </SelectTrigger>
               <SelectContent>
                 {availableMicrophones.map((mic) => (
-                  <SelectItem key={mic.deviceId} value={mic.deviceId}>
+                  <SelectItem 
+                    key={mic.deviceId} 
+                    value={mic.deviceId || "default"}
+                  >
                     {mic.label || `Microphone ${mic.deviceId.slice(0, 8)}`}
                   </SelectItem>
                 ))}
