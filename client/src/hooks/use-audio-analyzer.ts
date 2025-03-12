@@ -6,12 +6,14 @@ interface AudioAnalyzerResult {
   startRecording: () => Promise<void>;
   stopRecording: () => void;
   sampleRate: number | null;
+  soundCannonDetected: boolean;
 }
 
 export function useAudioAnalyzer(): AudioAnalyzerResult {
   const [isRecording, setIsRecording] = useState(false);
   const [frequencyData, setFrequencyData] = useState<Uint8Array | null>(null);
   const [sampleRate, setSampleRate] = useState<number | null>(null);
+  const [soundCannonDetected, setSoundCannonDetected] = useState(false);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyzerRef = useRef<AnalyserNode | null>(null);
@@ -36,25 +38,24 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
           echoCancellation: false,
           noiseSuppression: false,
           autoGainControl: false,
-          // Extended frequency range settings
-          sampleRate: 192000, // Higher sample rate for better frequency detection
+          sampleRate: 192000, // Higher sample rate for better detection
           channelCount: 1
         } 
       });
 
       audioContextRef.current = new AudioContext({
-        sampleRate: 192000 // Higher sample rate for extended frequency analysis
+        sampleRate: 192000
       });
       setSampleRate(audioContextRef.current.sampleRate);
 
       analyzerRef.current = audioContextRef.current.createAnalyser();
       sourceRef.current = audioContextRef.current.createMediaStreamSource(stream);
 
-      // Enhanced settings for broader frequency detection
-      analyzerRef.current.fftSize = 8192; // Increased for higher resolution
-      analyzerRef.current.smoothingTimeConstant = 0.1; // Lower for faster response
-      analyzerRef.current.minDecibels = -100; // Lower threshold for subtle signals
-      analyzerRef.current.maxDecibels = -30; // Upper threshold for strong signals
+      // Enhanced settings for sound cannon detection
+      analyzerRef.current.fftSize = 8192;
+      analyzerRef.current.smoothingTimeConstant = 0.1;
+      analyzerRef.current.minDecibels = -100;
+      analyzerRef.current.maxDecibels = -30;
 
       sourceRef.current.connect(analyzerRef.current);
 
@@ -63,6 +64,17 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
 
         const dataArray = new Uint8Array(analyzerRef.current.frequencyBinCount);
         analyzerRef.current.getByteFrequencyData(dataArray);
+
+        // Detect sound cannon (high amplitude in 2-10kHz range)
+        const binSize = (audioContextRef.current?.sampleRate || 192000) / analyzerRef.current.fftSize;
+        const startBin = Math.floor(2000 / binSize);
+        const endBin = Math.floor(10000 / binSize);
+
+        const highIntensityCount = dataArray
+          .slice(startBin, endBin)
+          .filter(amplitude => amplitude > 200).length;
+
+        setSoundCannonDetected(highIntensityCount > (endBin - startBin) * 0.3);
         setFrequencyData(dataArray);
 
         animationFrameRef.current = requestAnimationFrame(updateFrequencyData);
@@ -88,6 +100,7 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
     setIsRecording(false);
     setFrequencyData(null);
     setSampleRate(null);
+    setSoundCannonDetected(false);
   };
 
   return {
@@ -95,6 +108,7 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
     frequencyData,
     startRecording,
     stopRecording,
-    sampleRate
+    sampleRate,
+    soundCannonDetected
   };
 }
