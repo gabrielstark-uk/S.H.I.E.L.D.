@@ -5,13 +5,13 @@ import { FrequencyDisplay } from "./FrequencyDisplay";
 import { Mic, MicOff } from "lucide-react";
 
 export function AudioAnalyzer() {
-  const { isRecording, frequencyData, startRecording, stopRecording } = useAudioAnalyzer();
+  const { isRecording, frequencyData, sampleRate, startRecording, stopRecording } = useAudioAnalyzer();
 
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          <span>Audio Frequency Analyzer</span>
+          <span>Sonic Wave Analyzer</span>
           <Button
             variant={isRecording ? "destructive" : "default"}
             onClick={isRecording ? stopRecording : startRecording}
@@ -31,7 +31,12 @@ export function AudioAnalyzer() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <FrequencyDisplay data={frequencyData} />
+        <FrequencyDisplay data={frequencyData} sampleRate={sampleRate} />
+        {isRecording && (
+          <p className="text-sm text-muted-foreground mt-4">
+            Analyzing frequencies between 20Hz and 20kHz for sonic wave detection
+          </p>
+        )}
       </CardContent>
     </Card>
   );
