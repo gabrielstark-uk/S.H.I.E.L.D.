@@ -7,6 +7,8 @@ interface AudioAnalyzerResult {
   stopRecording: () => void;
   sampleRate: number | null;
   soundCannonDetected: boolean;
+  v2kDetected: boolean;
+  isCountermeasureActive: boolean;
 }
 
 export function useAudioAnalyzer(): AudioAnalyzerResult {
@@ -14,11 +16,59 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
   const [frequencyData, setFrequencyData] = useState<Uint8Array | null>(null);
   const [sampleRate, setSampleRate] = useState<number | null>(null);
   const [soundCannonDetected, setSoundCannonDetected] = useState(false);
+  const [v2kDetected, setV2kDetected] = useState(false);
+  const [isCountermeasureActive, setIsCountermeasureActive] = useState(false);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyzerRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const oscillatorRef = useRef<OscillatorNode | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
   const animationFrameRef = useRef<number>();
+
+  // Create warning siren sound
+  const createSiren = () => {
+    if (!audioContextRef.current) return;
+
+    oscillatorRef.current = audioContextRef.current.createOscillator();
+    gainNodeRef.current = audioContextRef.current.createGain();
+
+    oscillatorRef.current.type = 'sawtooth';
+    oscillatorRef.current.frequency.setValueAtTime(440, audioContextRef.current.currentTime);
+
+    // Siren effect - frequency modulation
+    oscillatorRef.current.frequency.setValueCurveAtTime(
+      [440, 880, 440],
+      audioContextRef.current.currentTime,
+      1.0
+    );
+
+    gainNodeRef.current.gain.setValueAtTime(0.1, audioContextRef.current.currentTime);
+
+    oscillatorRef.current.connect(gainNodeRef.current);
+    gainNodeRef.current.connect(audioContextRef.current.destination);
+
+    oscillatorRef.current.start();
+
+    // Create and play warning message
+    const msg = new SpeechSynthesisUtterance("HARASSMENT ALERT! CONTACT THE AUTHORITIES!");
+    msg.volume = 1;
+    msg.rate = 1.2;
+    window.speechSynthesis.speak(msg);
+
+    setIsCountermeasureActive(true);
+  };
+
+  const stopSiren = () => {
+    if (oscillatorRef.current) {
+      oscillatorRef.current.stop();
+      oscillatorRef.current.disconnect();
+    }
+    if (gainNodeRef.current) {
+      gainNodeRef.current.disconnect();
+    }
+    setIsCountermeasureActive(false);
+  };
 
   useEffect(() => {
     return () => {
@@ -28,6 +78,7 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
       if (audioContextRef.current) {
         audioContextRef.current.close();
       }
+      stopSiren();
     };
   }, []);
 
@@ -51,7 +102,7 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
       analyzerRef.current = audioContextRef.current.createAnalyser();
       sourceRef.current = audioContextRef.current.createMediaStreamSource(stream);
 
-      // Enhanced settings for sound cannon detection
+      // Enhanced settings for detection
       analyzerRef.current.fftSize = 8192;
       analyzerRef.current.smoothingTimeConstant = 0.1;
       analyzerRef.current.minDecibels = -100;
@@ -75,8 +126,25 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
           .filter(amplitude => amplitude > 200).length;
 
         setSoundCannonDetected(highIntensityCount > (endBin - startBin) * 0.3);
-        setFrequencyData(dataArray);
 
+        // Check for V2K frequencies (300MHz - 3GHz range)  **NOTE: This frequency range is unrealistic for audio analysis.**
+        const v2kStartBin = Math.floor(300e6 / binSize);
+        const v2kEndBin = Math.floor(3e9 / binSize);
+        const v2kActivity = dataArray
+          .slice(v2kStartBin, v2kEndBin)
+          .filter(amplitude => amplitude > 180).length;
+
+        const newV2kDetected = v2kActivity > (v2kEndBin - v2kStartBin) * 0.2;
+        setV2kDetected(newV2kDetected);
+
+        // Activate countermeasures if V2K is detected
+        if (newV2kDetected && !isCountermeasureActive) {
+          createSiren();
+        } else if (!newV2kDetected && isCountermeasureActive) {
+          stopSiren();
+        }
+
+        setFrequencyData(dataArray);
         animationFrameRef.current = requestAnimationFrame(updateFrequencyData);
       };
 
@@ -97,10 +165,12 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
     if (audioContextRef.current) {
       audioContextRef.current.close();
     }
+    stopSiren();
     setIsRecording(false);
     setFrequencyData(null);
     setSampleRate(null);
     setSoundCannonDetected(false);
+    setV2kDetected(false);
   };
 
   return {
@@ -109,6 +179,8 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
     startRecording,
     stopRecording,
     sampleRate,
-    soundCannonDetected
+    soundCannonDetected,
+    v2kDetected,
+    isCountermeasureActive
   };
 }

@@ -4,16 +4,25 @@ import { useAudioAnalyzer } from "@/hooks/use-audio-analyzer";
 import { FrequencyDisplay } from "./FrequencyDisplay";
 import { Mic, MicOff } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Shield } from "lucide-react";
 
 export function AudioAnalyzer() {
-  const { isRecording, frequencyData, sampleRate, soundCannonDetected, startRecording, stopRecording } = useAudioAnalyzer();
+  const { 
+    isRecording, 
+    frequencyData, 
+    sampleRate, 
+    soundCannonDetected, 
+    v2kDetected,
+    isCountermeasureActive,
+    startRecording, 
+    stopRecording 
+  } = useAudioAnalyzer();
 
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          <span>Sound Cannon Detector</span>
+          <span>Frequency Protection System</span>
           <Button
             variant={isRecording ? "destructive" : "default"}
             onClick={isRecording ? stopRecording : startRecording}
@@ -43,10 +52,26 @@ export function AudioAnalyzer() {
             </AlertDescription>
           </Alert>
         )}
+
+        {v2kDetected && (
+          <Alert variant={isCountermeasureActive ? "default" : "destructive"}>
+            <Shield className="h-4 w-4" />
+            <AlertTitle>
+              V2K Attack Detected! {isCountermeasureActive && "- Countermeasures Active"}
+            </AlertTitle>
+            <AlertDescription>
+              {isCountermeasureActive ? 
+                "Defensive siren activated. Authorities should be contacted." :
+                "Suspicious activity detected in V2K frequency range (300MHz-3GHz)."
+              }
+            </AlertDescription>
+          </Alert>
+        )}
+
         <FrequencyDisplay data={frequencyData} sampleRate={sampleRate} />
         {isRecording && (
           <p className="text-sm text-muted-foreground mt-4">
-            Monitoring for dangerous sonic frequencies (2-10kHz at high intensity)
+            Monitoring for dangerous frequencies and V2K attacks
           </p>
         )}
       </CardContent>
