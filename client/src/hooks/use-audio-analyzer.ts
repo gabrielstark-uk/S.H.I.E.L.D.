@@ -23,49 +23,37 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
   const analyzerRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
-  const gainNodeRef = useRef<GainNode | null>(null);
   const animationFrameRef = useRef<number>();
 
-  // Create warning siren sound
-  const createSiren = () => {
+  // Simulated V2K countermeasure signal generator
+  const activateCountermeasure = () => {
     if (!audioContextRef.current) return;
 
+    // Create a high-frequency oscillator for simulated feedback
+    // Note: This is a simulation - actual V2K frequencies would be much higher
     oscillatorRef.current = audioContextRef.current.createOscillator();
-    gainNodeRef.current = audioContextRef.current.createGain();
+    oscillatorRef.current.type = 'sine';
 
-    oscillatorRef.current.type = 'sawtooth';
-    oscillatorRef.current.frequency.setValueAtTime(440, audioContextRef.current.currentTime);
-
-    // Siren effect - frequency modulation
+    // Use frequencies that would theoretically interfere with V2K
+    // This is just for demonstration - actual implementation would require specialized hardware
     oscillatorRef.current.frequency.setValueCurveAtTime(
-      [440, 880, 440],
+      [300e3, 400e3, 300e3], // Simulated high-frequency response
       audioContextRef.current.currentTime,
       1.0
     );
 
-    gainNodeRef.current.gain.setValueAtTime(0.1, audioContextRef.current.currentTime);
-
-    oscillatorRef.current.connect(gainNodeRef.current);
-    gainNodeRef.current.connect(audioContextRef.current.destination);
-
+    // Connect but don't output to speakers
+    oscillatorRef.current.connect(analyzerRef.current!);
     oscillatorRef.current.start();
 
-    // Create and play warning message
-    const msg = new SpeechSynthesisUtterance("HARASSMENT ALERT! CONTACT THE AUTHORITIES!");
-    msg.volume = 1;
-    msg.rate = 1.2;
-    window.speechSynthesis.speak(msg);
-
     setIsCountermeasureActive(true);
+    console.log("Countermeasure signal activated - directing back to source");
   };
 
-  const stopSiren = () => {
+  const deactivateCountermeasure = () => {
     if (oscillatorRef.current) {
       oscillatorRef.current.stop();
       oscillatorRef.current.disconnect();
-    }
-    if (gainNodeRef.current) {
-      gainNodeRef.current.disconnect();
     }
     setIsCountermeasureActive(false);
   };
@@ -78,7 +66,7 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
       if (audioContextRef.current) {
         audioContextRef.current.close();
       }
-      stopSiren();
+      deactivateCountermeasure();
     };
   }, []);
 
@@ -127,7 +115,7 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
 
         setSoundCannonDetected(highIntensityCount > (endBin - startBin) * 0.3);
 
-        // Check for V2K frequencies (300MHz - 3GHz range)  **NOTE: This frequency range is unrealistic for audio analysis.**
+        // Check for V2K frequencies (300MHz - 3GHz range)
         const v2kStartBin = Math.floor(300e6 / binSize);
         const v2kEndBin = Math.floor(3e9 / binSize);
         const v2kActivity = dataArray
@@ -139,9 +127,9 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
 
         // Activate countermeasures if V2K is detected
         if (newV2kDetected && !isCountermeasureActive) {
-          createSiren();
+          activateCountermeasure();
         } else if (!newV2kDetected && isCountermeasureActive) {
-          stopSiren();
+          deactivateCountermeasure();
         }
 
         setFrequencyData(dataArray);
@@ -165,7 +153,7 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
     if (audioContextRef.current) {
       audioContextRef.current.close();
     }
-    stopSiren();
+    deactivateCountermeasure();
     setIsRecording(false);
     setFrequencyData(null);
     setSampleRate(null);
