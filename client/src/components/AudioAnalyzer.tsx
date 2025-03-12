@@ -14,6 +14,7 @@ export function AudioAnalyzer() {
     soundCannonDetected, 
     v2kDetected,
     isCountermeasureActive,
+    ageTargetingDetected,
     startRecording, 
     stopRecording 
   } = useAudioAnalyzer();
@@ -61,8 +62,23 @@ export function AudioAnalyzer() {
             </AlertTitle>
             <AlertDescription>
               {isCountermeasureActive ? 
-                "Defensive siren activated. Authorities should be contacted." :
+                "Defensive frequency signal activated to neutralize V2K transmission." :
                 "Suspicious activity detected in V2K frequency range (300MHz-3GHz)."
+              }
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {ageTargetingDetected && (
+          <Alert variant={isCountermeasureActive ? "default" : "destructive"}>
+            <Shield className="h-4 w-4" />
+            <AlertTitle>
+              Age-Targeted Frequencies Detected! {isCountermeasureActive && "- Countermeasures Active"}
+            </AlertTitle>
+            <AlertDescription>
+              {isCountermeasureActive ? 
+                "Defensive signal activated to disrupt age-specific targeting (3-8kHz range)." :
+                "Suspicious concentration of frequencies in child speech range (3-8kHz)."
               }
             </AlertDescription>
           </Alert>

@@ -9,6 +9,7 @@ interface AudioAnalyzerResult {
   soundCannonDetected: boolean;
   v2kDetected: boolean;
   isCountermeasureActive: boolean;
+  ageTargetingDetected: boolean;
 }
 
 export function useAudioAnalyzer(): AudioAnalyzerResult {
@@ -18,6 +19,7 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
   const [soundCannonDetected, setSoundCannonDetected] = useState(false);
   const [v2kDetected, setV2kDetected] = useState(false);
   const [isCountermeasureActive, setIsCountermeasureActive] = useState(false);
+  const [ageTargetingDetected, setAgeTargetingDetected] = useState(false);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyzerRef = useRef<AnalyserNode | null>(null);
@@ -25,22 +27,28 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
   const oscillatorRef = useRef<OscillatorNode | null>(null);
   const animationFrameRef = useRef<number>();
 
-  // Simulated V2K countermeasure signal generator
+  // Simulated countermeasure signal generator
   const activateCountermeasure = () => {
     if (!audioContextRef.current) return;
 
-    // Create a high-frequency oscillator for simulated feedback
-    // Note: This is a simulation - actual V2K frequencies would be much higher
     oscillatorRef.current = audioContextRef.current.createOscillator();
     oscillatorRef.current.type = 'sine';
 
-    // Use frequencies that would theoretically interfere with V2K
-    // This is just for demonstration - actual implementation would require specialized hardware
-    oscillatorRef.current.frequency.setValueCurveAtTime(
-      [300e3, 400e3, 300e3], // Simulated high-frequency response
-      audioContextRef.current.currentTime,
-      1.0
-    );
+    if (v2kDetected) {
+      // V2K countermeasure - high frequency interference
+      oscillatorRef.current.frequency.setValueCurveAtTime(
+        [300e3, 400e3, 300e3], // Simulated high-frequency response
+        audioContextRef.current.currentTime,
+        1.0
+      );
+    } else if (ageTargetingDetected) {
+      // Age targeting countermeasure - frequency jamming
+      oscillatorRef.current.frequency.setValueCurveAtTime(
+        [3000, 8000, 3000], // Child speech range interference
+        audioContextRef.current.currentTime,
+        1.0
+      );
+    }
 
     // Connect but don't output to speakers
     oscillatorRef.current.connect(analyzerRef.current!);
@@ -125,10 +133,20 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
         const newV2kDetected = v2kActivity > (v2kEndBin - v2kStartBin) * 0.2;
         setV2kDetected(newV2kDetected);
 
-        // Activate countermeasures if V2K is detected
-        if (newV2kDetected && !isCountermeasureActive) {
+        // Check for age-targeting frequencies (child speech range: 3-8kHz)
+        const childStartBin = Math.floor(3000 / binSize);
+        const childEndBin = Math.floor(8000 / binSize);
+        const childRangeActivity = dataArray
+          .slice(childStartBin, childEndBin)
+          .filter(amplitude => amplitude > 160).length;
+
+        const newAgeTargetingDetected = childRangeActivity > (childEndBin - childStartBin) * 0.4;
+        setAgeTargetingDetected(newAgeTargetingDetected);
+
+        // Activate countermeasures if threats detected
+        if ((newV2kDetected || newAgeTargetingDetected) && !isCountermeasureActive) {
           activateCountermeasure();
-        } else if (!newV2kDetected && isCountermeasureActive) {
+        } else if (!newV2kDetected && !newAgeTargetingDetected && isCountermeasureActive) {
           deactivateCountermeasure();
         }
 
@@ -159,6 +177,7 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
     setSampleRate(null);
     setSoundCannonDetected(false);
     setV2kDetected(false);
+    setAgeTargetingDetected(false);
   };
 
   return {
@@ -169,6 +188,7 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
     sampleRate,
     soundCannonDetected,
     v2kDetected,
-    isCountermeasureActive
+    isCountermeasureActive,
+    ageTargetingDetected
   };
 }
