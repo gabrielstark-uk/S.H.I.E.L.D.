@@ -34,14 +34,28 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
   useEffect(() => {
     async function getMicrophones() {
       try {
+        // Request permission first to get labeled devices
+        await navigator.mediaDevices.getUserMedia({ audio: true })
+          .catch(err => console.log("Initial permission request:", err));
+          
         const devices = await navigator.mediaDevices.enumerateDevices();
         const mics = devices.filter(device => device.kind === 'audioinput');
+        console.log("Available microphones:", mics);
+        
         setAvailableMicrophones(mics);
         if (mics.length > 0 && !selectedMicrophone) {
-          setSelectedMicrophone(mics[0].deviceId);
+          setSelectedMicrophone(mics[0].deviceId || "default-mic");
         }
       } catch (error) {
         console.error("Error accessing microphones:", error);
+        // Provide at least a default option
+        setAvailableMicrophones([{
+          deviceId: "default-mic",
+          kind: "audioinput",
+          label: "Default Microphone",
+          groupId: ""
+        }]);
+        setSelectedMicrophone("default-mic");
       }
     }
 
@@ -101,30 +115,35 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
         throw new Error("No microphone selected");
       }
 
+      // First request basic audio permission
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      // Then get the stream with specific constraints
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: { 
-          deviceId: { exact: selectedMicrophone },
+          deviceId: selectedMicrophone ? { ideal: selectedMicrophone } : undefined,
           echoCancellation: false,
           noiseSuppression: false,
           autoGainControl: false,
-          sampleRate: 192000, // Higher sample rate for better detection
+          sampleRate: 48000, // More compatible sample rate
           channelCount: 1
         } 
       });
 
-      audioContextRef.current = new AudioContext({
-        sampleRate: 192000
-      });
-      setSampleRate(audioContextRef.current.sampleRate);
+      // Use default sample rate for better compatibility
+      audioContextRef.current = new AudioContext();
+      const actualSampleRate = audioContextRef.current.sampleRate;
+      console.log("Actual sample rate:", actualSampleRate);
+      setSampleRate(actualSampleRate);
 
       analyzerRef.current = audioContextRef.current.createAnalyser();
       sourceRef.current = audioContextRef.current.createMediaStreamSource(stream);
-
-      // Enhanced settings for detection
-      analyzerRef.current.fftSize = 8192;
-      analyzerRef.current.smoothingTimeConstant = 0.1;
-      analyzerRef.current.minDecibels = -100;
-      analyzerRef.current.maxDecibels = -30;
+      
+      // Use more compatible settings
+      analyzerRef.current.fftSize = 2048; // More compatible size
+      analyzerRef.current.smoothingTimeConstant = 0.3;
+      analyzerRef.current.minDecibels = -90;
+      analyzerRef.current.maxDecibels = -10;
 
       sourceRef.current.connect(analyzerRef.current);
 

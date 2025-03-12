@@ -46,7 +46,7 @@ export function AudioAnalyzer() {
                 {availableMicrophones.map((mic) => (
                   <SelectItem 
                     key={mic.deviceId} 
-                    value={mic.deviceId || "default"}
+                    value={mic.deviceId || "default-mic"}
                   >
                     {mic.label || `Microphone ${mic.deviceId.slice(0, 8)}`}
                   </SelectItem>

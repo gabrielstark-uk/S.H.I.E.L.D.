@@ -6,7 +6,7 @@ interface FrequencyDisplayProps {
   sampleRate?: number | null;
 }
 
-export function FrequencyDisplay({ data, sampleRate = 192000 }: FrequencyDisplayProps) {
+export function FrequencyDisplay({ data, sampleRate = 48000 }: FrequencyDisplayProps) {
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
