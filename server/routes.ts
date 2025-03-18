@@ -107,16 +107,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     app.post("/api/auth/login", async (req, res) => {
         try {
-            const credentials = loginUserSchema.parse(req.body);
-            const result = await storage.loginUser(credentials);
-
-            if (!result) {
-                return res.status(401).json({ error: "Invalid credentials" });
+            // Validate request body
+            if (!req.body || !req.body.email || !req.body.password) {
+                return res.status(400).json({ error: "Email and password are required" });
             }
 
-            res.json(result);
+            try {
+                const credentials = loginUserSchema.parse(req.body);
+                const result = await storage.loginUser(credentials);
+
+                if (!result) {
+                    return res.status(401).json({ error: "Invalid credentials" });
+                }
+
+                // Ensure we're returning a valid JSON object
+                return res.json(result);
+            } catch (parseError) {
+                console.error('Login schema validation error:', parseError);
+                return res.status(400).json({ error: "Invalid login data format" });
+            }
         } catch (error) {
-            res.status(400).json({ error: "Invalid login data" });
+            console.error('Login error:', error);
+            return res.status(500).json({ error: "Server error during login" });
         }
     });
 
@@ -304,8 +316,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.error("Chat error:", error);
             res.status(500).json({ error: "Failed to process chat message" });
         }
-    });
-
+    })
     app.get("/api/chat/history/:sessionId", authenticateToken, async (req, res) => {
         try {
             const { sessionId } = req.params;
@@ -490,6 +501,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
             res.json({ message: "User deleted successfully" });
         } catch (error) {
             res.status(500).json({ error: "Failed to delete user" });
+        }
+    });
+
+    // Setup routes for first-time initialization
+    app.get("/api/setup/status", async (req, res) => {
+        try {
+            // Check if any admin or sudo users exist
+            const users = await storage.getAllUsers();
+            const adminExists = users.some(user => user.role === 'admin' || user.role === 'sudo');
+
+            res.json({
+                setupAvailable: !adminExists,
+                message: adminExists ? 'Setup already completed' : 'Setup available'
+            });
+        } catch (error) {
+            console.error('Setup status check error:', error);
+            res.status(500).json({ error: "Failed to check setup status" });
+        }
+    });
+
+    app.post("/api/setup/create-admin", async (req, res) => {
+        try {
+            // Check if any admin or sudo users already exist
+            const users = await storage.getAllUsers();
+            const adminExists = users.some(user => user.role === 'admin' || user.role === 'sudo');
+
+            if (adminExists) {
+                return res.status(403).json({
+                    error: "Setup already completed. An administrator account already exists."
+                });
+            }
+
+            // Create the admin user with sudo role and enterprise subscription
+            const userData = insertUserSchema.parse({
+                ...req.body,
+                role: 'sudo',
+                subscriptionTier: 'enterprise'
+            });
+
+            const user = await storage.createUser(userData);
+            res.status(201).json({
+                message: "Administrator account created successfully",
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    role: user.role,
+                    subscriptionTier: user.subscriptionTier
+                }
+            });
+        } catch (error: any) {
+            if (error.message === 'Email already in use') {
+                return res.status(409).json({ error: error.message });
+            }
+            console.error('Setup create admin error:', error);
+            res.status(400).json({ error: "Failed to create administrator account" });
         }
     });
 

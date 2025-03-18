@@ -56,18 +56,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const storedToken = localStorage.getItem('auth_token');
     const storedUser = localStorage.getItem('auth_user');
-    
+
     if (storedToken && storedUser) {
       try {
+        // Check if storedUser is a valid JSON string
+        if (!storedUser.trim()) {
+          throw new Error('Empty user data in localStorage');
+        }
+
+        const parsedUser = JSON.parse(storedUser);
+
+        // Validate that the parsed user has the expected properties
+        if (!parsedUser || typeof parsedUser !== 'object' || !parsedUser.id) {
+          throw new Error('Invalid user data format in localStorage');
+        }
+
         setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        setUser(parsedUser);
       } catch (e) {
-        console.error('Failed to parse stored user data');
+        console.error('Failed to parse stored user data:', e);
+        // Clear invalid data from localStorage
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_user');
       }
     }
-    
+
     setIsLoading(false);
   }, []);
 
@@ -75,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -84,21 +97,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
         body: JSON.stringify({ email, password }),
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Login failed');
+
+      // Get the response text first
+      const responseText = await response.text();
+
+      // Check if the response is not empty before parsing
+      if (!responseText) {
+        throw new Error('Empty response from server');
       }
-      
-      const data = await response.json();
-      
+
+      // Try to parse the response as JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse response:', responseText);
+        throw new Error('Invalid response format from server');
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
+
       // Store auth data
       localStorage.setItem('auth_token', data.token);
       localStorage.setItem('auth_user', JSON.stringify(data.user));
-      
+
       setToken(data.token);
       setUser(data.user);
     } catch (err: any) {
+      console.error('Login error:', err);
       setError(err.message || 'Login failed');
     } finally {
       setIsLoading(false);

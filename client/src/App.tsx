@@ -24,6 +24,7 @@ import Profile from "@/pages/profile";
 import Subscription from "@/pages/subscription";
 import Chat from "@/pages/chat";
 import AdminDashboard from "@/pages/admin/dashboard";
+import Setup from "@/pages/setup";
 import TermsAndConditions from "@/pages/terms";
 import PrivacyPolicy from "@/pages/privacy";
 import AboutUs from "@/pages/about";
@@ -51,8 +52,8 @@ function Navigation() {
         <div className="flex items-center justify-between">
           <Link href="/">
             <a className="text-2xl font-bold flex items-center gap-2">
-              <RadioTower className="h-6 w-6" />
-              FrequencyGuard
+              <Shield className="h-6 w-6" />
+              S.H.I.E.L.D
             </a>
           </Link>
 
@@ -206,6 +207,7 @@ function Router() {
       <Route path="/subscription" component={Subscription} />
       <Route path="/chat" component={Chat} />
       <Route path="/admin" component={AdminDashboard} />
+      <Route path="/setup" component={Setup} />
       <Route path="/terms" component={TermsAndConditions} />
       <Route path="/privacy" component={PrivacyPolicy} />
       <Route path="/about" component={AboutUs} />
@@ -227,7 +229,7 @@ function AppContent() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-primary" />
-              <span className="font-semibold">FrequencyGuard</span>
+              <span className="font-semibold">S.H.I.E.L.D</span>
               <span className="text-sm text-muted-foreground ml-2">© {new Date().getFullYear()}</span>
             </div>
             <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
@@ -243,11 +245,11 @@ function AppContent() {
               <Link href="/data-handling">
                 <a className="hover:text-foreground">Data Handling</a>
               </Link>
-              <a href="mailto:contact@frequencyguard.co.uk" className="hover:text-foreground">Contact</a>
+              <a href="mailto:contact@shield-protection.co.uk" className="hover:text-foreground">Contact</a>
             </div>
           </div>
           <div className="mt-4 text-xs text-center text-muted-foreground">
-            FrequencyGuard Ltd. is registered in England and Wales (Company No. 12345678)
+            S.H.I.E.L.D Protection Ltd. is registered in England and Wales (Company No. 12345678)
             <br />
             All prices are in GBP (£) and include VAT where applicable.
           </div>
