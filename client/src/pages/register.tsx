@@ -94,7 +94,7 @@ export default function Register() {
         <CardHeader>
           <CardTitle>Create an Account</CardTitle>
           <CardDescription>
-            Sign up to access all features of FrequencyGuard
+            Sign up to access all features of S.H.I.E.L.D (Safe Haven of Information & Enterprising Low Deterrency)
           </CardDescription>
         </CardHeader>
         <CardContent>

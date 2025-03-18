@@ -182,7 +182,165 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
     setDetectionHistory([]);
   };
 
-  const activateCountermeasure = () => {
+const activateCountermeasure = () => {
+    // Add to detection history with enhanced UK-specific information
+    setDetectionHistory(prev => [
+        {
+            type: v2kDetected ? 'V2K' : 'Sound Cannon',
+            timestamp: new Date(),
+            frequency: v2kDetected ? 'V2K Range' : 'Ultrasonic',
+            intensity: v2kDetected ? 90 : 85,
+            countermeasureActivated: true,
+            reportSent: detectionSettings.enableAutomaticReporting || false
+        },
+        ...prev
+    ]);
+
+    // Get user's geolocation for the report if enabled
+    if (detectionSettings.enableGeolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                // Send enhanced report with location data
+                const headers: HeadersInit = {
+                    'Content-Type': 'application/json',
+                };
+
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                // Create enhanced report
+                const reportData = {
+                    frequency: v2kDetected ? 'V2K' : 'Sound Cannon',
+                    type: v2kDetected ? 'V2K Attack' : 'Sound Cannon Attack',
+                    timestamp: new Date().toISOString(),
+                    location: {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        accuracy: position.coords.accuracy
+                    },
+                    severity: 'HIGH',
+                    countermeasureActivated: true,
+                    deviceInfo: {
+                        userAgent: navigator.userAgent,
+                        sampleRate: audioContextRef.current?.sampleRate || 0,
+                        deviceId: selectedMicrophone
+                    },
+                    region: 'UK',
+                    localPoliceStation: detectionSettings.localPoliceStation || 'Not specified',
+                    reportReference: `FG-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+                };
+
+                // Send to our API
+                fetch('/api/reports', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(reportData),
+                }).then(() => {
+                    console.log("Enhanced report sent with location data");
+
+                    // If automatic reporting is enabled, send to police
+                    if (detectionSettings.enableAutomaticReporting && detectionSettings.policeForceEmail) {
+                        console.log(`Automatic report sent to police: ${detectionSettings.policeForceEmail}`);
+                        if ('Notification' in window && Notification.permission === 'granted') {
+                            new Notification('Report Sent to Police', {
+                                body: `Report reference: ${reportData.reportReference}`,
+                                icon: '/favicon.ico'
+                            });
+                        }
+                    }
+                }).catch(err => {
+                    console.error("Failed to send report:", err);
+                });
+            },
+            (err) => {
+                console.warn("Could not get location for report:", err);
+                // Still send report without location
+                const headers: HeadersInit = {
+                    'Content-Type': 'application/json',
+                };
+
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                // Create enhanced report without location
+                const reportData = {
+                    frequency: v2kDetected ? 'V2K' : 'Sound Cannon',
+                    type: v2kDetected ? 'V2K Attack' : 'Sound Cannon Attack',
+                    timestamp: new Date().toISOString(),
+                    severity: 'HIGH',
+                    countermeasureActivated: true,
+                    deviceInfo: {
+                        userAgent: navigator.userAgent,
+                        sampleRate: audioContextRef.current?.sampleRate || 0,
+                        deviceId: selectedMicrophone
+                    },
+                    region: 'UK',
+                    localPoliceStation: detectionSettings.localPoliceStation || 'Not specified',
+                    reportReference: `FG-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+                };
+
+                fetch('/api/reports', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(reportData),
+                }).then(() => {
+                    if (detectionSettings.enableAutomaticReporting && detectionSettings.policeForceEmail) {
+                        console.log(`Automatic report sent to police: ${detectionSettings.policeForceEmail}`);
+                        if ('Notification' in window && Notification.permission === 'granted') {
+                            new Notification('Report Sent to Police', {
+                                body: `Report reference: ${reportData.reportReference}`,
+                                icon: '/favicon.ico'
+                            });
+                        }
+                    }
+                });
+            }
+        );
+    } else {
+        // Send report without location
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+        };
+
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        // Create enhanced report without location
+        const reportData = {
+            frequency: v2kDetected ? 'V2K' : 'Sound Cannon',
+            type: v2kDetected ? 'V2K Attack' : 'Sound Cannon Attack',
+            timestamp: new Date().toISOString(),
+            severity: 'HIGH',
+            countermeasureActivated: true,
+            deviceInfo: {
+                userAgent: navigator.userAgent,
+                sampleRate: audioContextRef.current?.sampleRate || 0,
+                deviceId: selectedMicrophone
+            },
+            region: 'UK',
+            localPoliceStation: detectionSettings.localPoliceStation || 'Not specified',
+            reportReference: `FG-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+        };
+
+        fetch('/api/reports', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(reportData),
+        }).then(() => {
+            if (detectionSettings.enableAutomaticReporting && detectionSettings.policeForceEmail) {
+                console.log(`Automatic report sent to police: ${detectionSettings.policeForceEmail}`);
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification('Report Sent to Police', {
+                        body: `Report reference: ${reportData.reportReference}`,
+                        icon: '/favicon.ico'
+                    });
+                }
+            }
+        });
+    }
     // Add to detection history with enhanced UK-specific information
     const newDetection = {
         type: v2kDetected ? 'V2K' : 'Sound Cannon',

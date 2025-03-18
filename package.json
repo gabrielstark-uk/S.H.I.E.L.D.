@@ -6,12 +6,14 @@
   "scripts": {
     "dev": "tsx server/index.ts",
     "build": "vite build",
-    "build:server": "esbuild server/index.ts --platform=node --packages=external --bundle --format=cjs --outdir=dist",
+    "build:server": "esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.mjs",
     "build:vercel": "vite build",
-    "start": "NODE_ENV=production node dist/index.js",
+    "build:all": "npm run build && npm run build:server",
+    "start": "NODE_ENV=production node --experimental-specifier-resolution=node dist/index.mjs",
     "check": "tsc",
     "db:push": "drizzle-kit push",
-    "create-sudo": "node --experimental-specifier-resolution=node --loader tsx scripts/create-sudo-user.js"
+    "create-sudo": "node --experimental-specifier-resolution=node --loader tsx scripts/create-sudo-user.js",
+    "build:clean": "rm -rf dist && mkdir -p dist && npm run build:all"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
