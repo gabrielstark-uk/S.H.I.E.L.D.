@@ -29,6 +29,13 @@ export default defineConfig({
     },
   },
   root: path.resolve(__dirname, "client"),
+  css: {
+    preprocessorOptions: {
+      scss: {
+        additionalData: `@import "@/styles/_variables.scss";`,
+      },
+    },
+  },
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
