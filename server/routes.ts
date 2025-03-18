@@ -58,6 +58,32 @@ const checkSubscriptionAccess = (requiredTier: 'free' | 'basic' | 'premium' | 'e
     };
 };
 
+// Middleware to check for admin role
+const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+    const userRole = req.user?.role || 'user';
+
+    if (userRole === 'admin' || userRole === 'sudo') {
+        next();
+    } else {
+        res.status(403).json({
+            error: 'Admin access required'
+        });
+    }
+};
+
+// Middleware to check for sudo role
+const requireSudo = (req: Request, res: Response, next: NextFunction) => {
+    const userRole = req.user?.role || 'user';
+
+    if (userRole === 'sudo') {
+        next();
+    } else {
+        res.status(403).json({
+            error: 'Sudo access required'
+        });
+    }
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
     // Extend Express Request type to include user property
     app.use((req: Request, _res: Response, next: NextFunction) => {
@@ -154,7 +180,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // Generate a new token with updated tier
             const token = jwt.sign(
-                { userId: updatedUser.id, email: updatedUser.email, tier: updatedUser.subscriptionTier },
+                {
+                    userId: updatedUser.id,
+                    email: updatedUser.email,
+                    tier: updatedUser.subscriptionTier,
+                    role: updatedUser.role
+                },
                 JWT_SECRET,
                 { expiresIn: '24h' }
             );
@@ -377,6 +408,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
             res.status(201).json(resource);
         } catch (error) {
             res.status(400).json({ error: "Invalid resource data" });
+        }
+    });
+
+    // Admin routes
+    app.get("/api/admin/users", authenticateToken, requireAdmin, async (req, res) => {
+        try {
+            const users = await storage.getAllUsers();
+            res.json(users);
+        } catch (error) {
+            res.status(500).json({ error: "Failed to fetch users" });
+        }
+    });
+
+    app.get("/api/admin/reports", authenticateToken, requireAdmin, async (req, res) => {
+        try {
+            const reports = await storage.getReports();
+            res.json(reports);
+        } catch (error) {
+            res.status(500).json({ error: "Failed to fetch reports" });
+        }
+    });
+
+    app.put("/api/admin/users/:id", authenticateToken, requireAdmin, async (req, res) => {
+        try {
+            const userId = parseInt(req.params.id);
+            const { role, isActive, subscriptionTier } = req.body;
+
+            // Sudo users can only be managed by other sudo users
+            if (role === 'sudo' && req.user.role !== 'sudo') {
+                return res.status(403).json({ error: "Only sudo users can create or manage sudo users" });
+            }
+
+            const updatedUser = await storage.updateUser(userId, { role, isActive, subscriptionTier });
+
+            if (!updatedUser) {
+                return res.status(404).json({ error: "User not found" });
+            }
+
+            res.json(updatedUser);
+        } catch (error) {
+            res.status(500).json({ error: "Failed to update user" });
+        }
+    });
+
+    // Sudo-only routes
+    app.post("/api/admin/users", authenticateToken, requireSudo, async (req, res) => {
+        try {
+            const userData = insertUserSchema.parse(req.body);
+
+            // Force role to be 'user' if not specified by sudo
+            if (!userData.role) {
+                userData.role = 'user';
+            }
+
+            const user = await storage.createUser(userData);
+            res.status(201).json(user);
+        } catch (error: any) {
+            if (error.message === 'Email already in use') {
+                return res.status(409).json({ error: error.message });
+            }
+            res.status(400).json({ error: "Invalid user data" });
+        }
+    });
+
+    app.delete("/api/admin/users/:id", authenticateToken, requireSudo, async (req, res) => {
+        try {
+            const userId = parseInt(req.params.id);
+
+            // Prevent sudo users from deleting themselves
+            if (userId === req.user.userId) {
+                return res.status(400).json({ error: "Cannot delete your own account" });
+            }
+
+            const success = await storage.deleteUser(userId);
+
+            if (!success) {
+                return res.status(404).json({ error: "User not found" });
+            }
+
+            res.json({ message: "User deleted successfully" });
+        } catch (error) {
+            res.status(500).json({ error: "Failed to delete user" });
         }
     });
 

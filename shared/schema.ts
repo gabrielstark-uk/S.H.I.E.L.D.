@@ -5,6 +5,9 @@ import { z } from "zod";
 // Subscription tier enum
 export const subscriptionTierEnum = pgEnum('subscription_tier', ['free', 'basic', 'premium', 'enterprise']);
 
+// User role enum
+export const userRoleEnum = pgEnum('user_role', ['user', 'admin', 'sudo']);
+
 // User table
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -13,6 +16,7 @@ export const users = pgTable("users", {
   firstName: varchar("first_name", { length: 100 }),
   lastName: varchar("last_name", { length: 100 }),
   subscriptionTier: subscriptionTierEnum("subscription_tier").default('free').notNull(),
+  role: userRoleEnum("role").default('user').notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastLogin: timestamp("last_login"),
@@ -106,6 +110,7 @@ export type InsertEducationalResource = z.infer<typeof insertEducationalResource
 export type EducationalResource = typeof educationalResources.$inferSelect;
 
 export type SubscriptionTier = 'free' | 'basic' | 'premium' | 'enterprise';
+export type UserRole = 'user' | 'admin' | 'sudo';
 
 // Subscription features by tier
 export const subscriptionFeatures = {

@@ -23,6 +23,11 @@ import Register from "@/pages/register";
 import Profile from "@/pages/profile";
 import Subscription from "@/pages/subscription";
 import Chat from "@/pages/chat";
+import AdminDashboard from "@/pages/admin/dashboard";
+import TermsAndConditions from "@/pages/terms";
+import PrivacyPolicy from "@/pages/privacy";
+import AboutUs from "@/pages/about";
+import DataHandling from "@/pages/data-handling";
 import {
   RadioTower,
   BookOpen,
@@ -118,6 +123,21 @@ function Navigation() {
                       </a>
                     </Link>
                   </DropdownMenuItem>
+                  {(user.role === 'admin' || user.role === 'sudo') && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin">
+                        <a className="flex items-center gap-2 cursor-pointer w-full">
+                          <Shield className="h-4 w-4" />
+                          Admin Dashboard
+                          {user.role === 'sudo' && (
+                            <Badge className="ml-auto" variant="destructive">
+                              Sudo
+                            </Badge>
+                          )}
+                        </a>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={logout} className="text-destructive">
                     <LogOut className="h-4 w-4 mr-2" />
@@ -185,6 +205,11 @@ function Router() {
       <Route path="/profile" component={Profile} />
       <Route path="/subscription" component={Subscription} />
       <Route path="/chat" component={Chat} />
+      <Route path="/admin" component={AdminDashboard} />
+      <Route path="/terms" component={TermsAndConditions} />
+      <Route path="/privacy" component={PrivacyPolicy} />
+      <Route path="/about" component={AboutUs} />
+      <Route path="/data-handling" component={DataHandling} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -205,11 +230,26 @@ function AppContent() {
               <span className="font-semibold">FrequencyGuard</span>
               <span className="text-sm text-muted-foreground ml-2">© {new Date().getFullYear()}</span>
             </div>
-            <div className="flex gap-6 text-sm text-muted-foreground">
-              <a href="#" className="hover:text-foreground">Privacy Policy</a>
-              <a href="#" className="hover:text-foreground">Terms of Service</a>
-              <a href="#" className="hover:text-foreground">Contact</a>
+            <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
+              <Link href="/about">
+                <a className="hover:text-foreground">About Us</a>
+              </Link>
+              <Link href="/privacy">
+                <a className="hover:text-foreground">Privacy Policy</a>
+              </Link>
+              <Link href="/terms">
+                <a className="hover:text-foreground">Terms of Service</a>
+              </Link>
+              <Link href="/data-handling">
+                <a className="hover:text-foreground">Data Handling</a>
+              </Link>
+              <a href="mailto:contact@frequencyguard.co.uk" className="hover:text-foreground">Contact</a>
             </div>
+          </div>
+          <div className="mt-4 text-xs text-center text-muted-foreground">
+            FrequencyGuard Ltd. is registered in England and Wales (Company No. 12345678)
+            <br />
+            All prices are in GBP (£) and include VAT where applicable.
           </div>
         </div>
       </footer>

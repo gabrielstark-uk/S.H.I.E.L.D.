@@ -12,9 +12,6 @@ interface DetectionSettings {
   enableGeolocation: boolean;
   alertVolume: number;
   countermeasureType: 'standard' | 'advanced' | 'custom';
-  enableAutomaticReporting: boolean;
-  policeForceEmail: string;
-  localPoliceStation: string;
   customCountermeasureSettings?: {
     frequency: number;
     waveform: OscillatorType;
@@ -60,9 +57,6 @@ const DEFAULT_DETECTION_SETTINGS: DetectionSettings = {
   enableGeolocation: true,
   alertVolume: 0.8,
   countermeasureType: 'standard',
-  enableAutomaticReporting: false,
-  policeForceEmail: '',
-  localPoliceStation: '',
 };
 
 // Sensitivity level multipliers
@@ -183,14 +177,13 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
   };
 
   const activateCountermeasure = () => {
-    // Add to detection history with enhanced UK-specific information
+    // Add to detection history
     const newDetection = {
         type: v2kDetected ? 'V2K' : 'Sound Cannon',
         timestamp: new Date(),
         frequency: v2kDetected ? 'V2K Range' : 'Ultrasonic',
         intensity: v2kDetected ? 90 : 85,
-        countermeasureActivated: true,
-        reportSent: detectionSettings.enableAutomaticReporting || false
+        countermeasureActivated: true
     };
 
     setDetectionHistory(prev => [newDetection, ...prev]);
@@ -208,50 +201,28 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
                     headers['Authorization'] = `Bearer ${token}`;
                 }
 
-                // Create enhanced UK-specific report
-                const reportData = {
-                    frequency: v2kDetected ? 'V2K' : 'Sound Cannon',
-                    type: v2kDetected ? 'V2K Attack' : 'Sound Cannon Attack',
-                    timestamp: new Date().toISOString(),
-                    location: {
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                        accuracy: position.coords.accuracy
-                    },
-                    severity: 'HIGH',
-                    countermeasureActivated: true,
-                    deviceInfo: {
-                        userAgent: navigator.userAgent,
-                        sampleRate: audioContextRef.current?.sampleRate || 0,
-                        deviceId: selectedMicrophone
-                    },
-                    // UK-specific information
-                    region: 'UK',
-                    localPoliceStation: detectionSettings.localPoliceStation || 'Not specified',
-                    reportReference: `FG-${Date.now()}-${Math.floor(Math.random() * 1000)}`
-                };
-
-                // Send to our API
                 fetch('/api/reports', {
                     method: 'POST',
                     headers,
-                    body: JSON.stringify(reportData),
+                    body: JSON.stringify({
+                        frequency: v2kDetected ? 'V2K' : 'Sound Cannon',
+                        type: v2kDetected ? 'V2K Attack' : 'Sound Cannon Attack',
+                        timestamp: new Date().toISOString(),
+                        location: {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy
+                        },
+                        severity: 'HIGH',
+                        countermeasureActivated: true,
+                        deviceInfo: {
+                            userAgent: navigator.userAgent,
+                            sampleRate: audioContextRef.current?.sampleRate || 0,
+                            deviceId: selectedMicrophone
+                        }
+                    }),
                 }).then(() => {
                     console.log("Enhanced report sent with location data");
-
-                    // If automatic reporting is enabled, send to police
-                    if (detectionSettings.enableAutomaticReporting && detectionSettings.policeForceEmail) {
-                        // In a real implementation, this would send an email to the police force
-                        console.log(`Automatic report sent to police: ${detectionSettings.policeForceEmail}`);
-
-                        // Show notification to user
-                        if ('Notification' in window && Notification.permission === 'granted') {
-                            new Notification('Report Sent to Police', {
-                                body: `Report reference: ${reportData.reportReference}`,
-                                icon: '/favicon.ico'
-                            });
-                        }
-                    }
                 }).catch(err => {
                     console.error("Failed to send report:", err);
                 });
@@ -267,42 +238,21 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
                     headers['Authorization'] = `Bearer ${token}`;
                 }
 
-                // Create enhanced UK-specific report without location
-                const reportData = {
-                    frequency: v2kDetected ? 'V2K' : 'Sound Cannon',
-                    type: v2kDetected ? 'V2K Attack' : 'Sound Cannon Attack',
-                    timestamp: new Date().toISOString(),
-                    severity: 'HIGH',
-                    countermeasureActivated: true,
-                    deviceInfo: {
-                        userAgent: navigator.userAgent,
-                        sampleRate: audioContextRef.current?.sampleRate || 0,
-                        deviceId: selectedMicrophone
-                    },
-                    // UK-specific information
-                    region: 'UK',
-                    localPoliceStation: detectionSettings.localPoliceStation || 'Not specified',
-                    reportReference: `FG-${Date.now()}-${Math.floor(Math.random() * 1000)}`
-                };
-
                 fetch('/api/reports', {
                     method: 'POST',
                     headers,
-                    body: JSON.stringify(reportData),
-                }).then(() => {
-                    // If automatic reporting is enabled, send to police
-                    if (detectionSettings.enableAutomaticReporting && detectionSettings.policeForceEmail) {
-                        // In a real implementation, this would send an email to the police force
-                        console.log(`Automatic report sent to police: ${detectionSettings.policeForceEmail}`);
-
-                        // Show notification to user
-                        if ('Notification' in window && Notification.permission === 'granted') {
-                            new Notification('Report Sent to Police', {
-                                body: `Report reference: ${reportData.reportReference}`,
-                                icon: '/favicon.ico'
-                            });
+                    body: JSON.stringify({
+                        frequency: v2kDetected ? 'V2K' : 'Sound Cannon',
+                        type: v2kDetected ? 'V2K Attack' : 'Sound Cannon Attack',
+                        timestamp: new Date().toISOString(),
+                        severity: 'HIGH',
+                        countermeasureActivated: true,
+                        deviceInfo: {
+                            userAgent: navigator.userAgent,
+                            sampleRate: audioContextRef.current?.sampleRate || 0,
+                            deviceId: selectedMicrophone
                         }
-                    }
+                    }),
                 });
             }
         );
@@ -316,42 +266,21 @@ export function useAudioAnalyzer(): AudioAnalyzerResult {
             headers['Authorization'] = `Bearer ${token}`;
         }
 
-        // Create enhanced UK-specific report without location or geolocation
-        const reportData = {
-            frequency: v2kDetected ? 'V2K' : 'Sound Cannon',
-            type: v2kDetected ? 'V2K Attack' : 'Sound Cannon Attack',
-            timestamp: new Date().toISOString(),
-            severity: 'HIGH',
-            countermeasureActivated: true,
-            deviceInfo: {
-                userAgent: navigator.userAgent,
-                sampleRate: audioContextRef.current?.sampleRate || 0,
-                deviceId: selectedMicrophone
-            },
-            // UK-specific information
-            region: 'UK',
-            localPoliceStation: detectionSettings.localPoliceStation || 'Not specified',
-            reportReference: `FG-${Date.now()}-${Math.floor(Math.random() * 1000)}`
-        };
-
         fetch('/api/reports', {
             method: 'POST',
             headers,
-            body: JSON.stringify(reportData),
-        }).then(() => {
-            // If automatic reporting is enabled, send to police
-            if (detectionSettings.enableAutomaticReporting && detectionSettings.policeForceEmail) {
-                // In a real implementation, this would send an email to the police force
-                console.log(`Automatic report sent to police: ${detectionSettings.policeForceEmail}`);
-
-                // Show notification to user
-                if ('Notification' in window && Notification.permission === 'granted') {
-                    new Notification('Report Sent to Police', {
-                        body: `Report reference: ${reportData.reportReference}`,
-                        icon: '/favicon.ico'
-                    });
+            body: JSON.stringify({
+                frequency: v2kDetected ? 'V2K' : 'Sound Cannon',
+                type: v2kDetected ? 'V2K Attack' : 'Sound Cannon Attack',
+                timestamp: new Date().toISOString(),
+                severity: 'HIGH',
+                countermeasureActivated: true,
+                deviceInfo: {
+                    userAgent: navigator.userAgent,
+                    sampleRate: audioContextRef.current?.sampleRate || 0,
+                    deviceId: selectedMicrophone
                 }
-            }
+            }),
         });
     }
 

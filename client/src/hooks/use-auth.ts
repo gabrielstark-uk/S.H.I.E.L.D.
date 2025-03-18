@@ -7,6 +7,7 @@ interface User {
   firstName?: string;
   lastName?: string;
   subscriptionTier: 'free' | 'basic' | 'premium' | 'enterprise';
+  role: 'user' | 'admin' | 'sudo';
   isActive: boolean;
   createdAt: string;
   lastLogin?: string;

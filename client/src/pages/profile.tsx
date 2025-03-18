@@ -10,7 +10,8 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { useLocation } from 'wouter';
-import { Loader2, AlertCircle, User, Settings, Bell, Shield } from 'lucide-react';
+import { Loader2, AlertCircle, User, Settings, Bell, Shield, MapPin } from 'lucide-react';
+import { UKSettings } from '@/components/uk-settings';
 
 export default function Profile() {
   const { user, updateProfile, isLoading, error } = useAuth();
@@ -33,6 +34,9 @@ export default function Profile() {
     enableGeolocation: user?.preferences?.detectionSettings?.enableGeolocation !== false,
     alertVolume: user?.preferences?.detectionSettings?.alertVolume || 0.8,
     countermeasureType: user?.preferences?.detectionSettings?.countermeasureType || 'standard',
+    enableAutomaticReporting: user?.preferences?.detectionSettings?.enableAutomaticReporting || false,
+    policeForceEmail: user?.preferences?.detectionSettings?.policeForceEmail || '',
+    localPoliceStation: user?.preferences?.detectionSettings?.localPoliceStation || '',
   });
 
   // Notification settings state
@@ -136,14 +140,18 @@ export default function Profile() {
         </div>
 
         <Tabs defaultValue="account" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-3 mb-8">
+          <TabsList className="grid grid-cols-4 mb-8">
             <TabsTrigger value="account" className="flex items-center gap-2">
               <User className="h-4 w-4" />
               Account
             </TabsTrigger>
             <TabsTrigger value="detection" className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
-              Detection Settings
+              Detection
+            </TabsTrigger>
+            <TabsTrigger value="uk-settings" className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              UK Settings
             </TabsTrigger>
             <TabsTrigger value="notifications" className="flex items-center gap-2">
               <Bell className="h-4 w-4" />
@@ -247,6 +255,40 @@ export default function Profile() {
                 </CardFooter>
               </form>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="uk-settings">
+            <UKSettings
+              settings={{
+                enableAutomaticReporting: detectionSettings.enableAutomaticReporting,
+                policeForceEmail: detectionSettings.policeForceEmail,
+                localPoliceStation: detectionSettings.localPoliceStation
+              }}
+              onSave={(ukSettings) => {
+                setDetectionSettings({
+                  ...detectionSettings,
+                  enableAutomaticReporting: ukSettings.enableAutomaticReporting,
+                  policeForceEmail: ukSettings.policeForceEmail,
+                  localPoliceStation: ukSettings.localPoliceStation
+                });
+
+                updateProfile({
+                  preferences: {
+                    ...user.preferences,
+                    detectionSettings: {
+                      ...detectionSettings,
+                      enableAutomaticReporting: ukSettings.enableAutomaticReporting,
+                      policeForceEmail: ukSettings.policeForceEmail,
+                      localPoliceStation: ukSettings.localPoliceStation
+                    }
+                  }
+                }).then(() => {
+                  setSuccessMessage('UK settings updated successfully');
+                }).catch(() => {
+                  setFormError('Failed to update UK settings');
+                });
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="detection">
@@ -437,14 +479,17 @@ export default function Profile() {
                     variant="outline"
                     onClick={() => {
                       setDetectionSettings({
-                        soundCannonThreshold: 200,
-                        v2kThreshold: 180,
-                        autoActivateCountermeasures: true,
-                        sensitivityLevel: 'medium',
-                        enableGeolocation: true,
-                        alertVolume: 0.8,
-                        countermeasureType: 'standard',
-                      });
+                                              soundCannonThreshold: 200,
+                                              v2kThreshold: 180,
+                                              autoActivateCountermeasures: true,
+                                              sensitivityLevel: 'medium',
+                                              enableGeolocation: true,
+                                              alertVolume: 0.8,
+                                              countermeasureType: 'standard',
+                                              enableAutomaticReporting: false,
+                                              policeForceEmail: '',
+                                              localPoliceStation: '',
+                                            });
                     }}
                     disabled={isLoading}
                   >

@@ -126,6 +126,7 @@ export class MemStorage implements IStorage {
       createdAt: new Date(),
       isActive: true,
       subscriptionTier: userData.subscriptionTier || 'free',
+      role: userData.role || 'user',
       firstName: userData.firstName ?? null,
       lastName: userData.lastName ?? null,
       lastLogin: null, // Explicitly set to null instead of undefined
@@ -160,7 +161,12 @@ export class MemStorage implements IStorage {
 
     // Create JWT token
     const token = jwt.sign(
-      { userId: user.id, email: user.email, tier: user.subscriptionTier },
+      {
+        userId: user.id,
+        email: user.email,
+        tier: user.subscriptionTier,
+        role: user.role
+      },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
@@ -195,6 +201,38 @@ export class MemStorage implements IStorage {
     // Return user without password hash
     const { passwordHash, ...userWithoutPassword } = user;
     return userWithoutPassword;
+  }
+
+  async getAllUsers(): Promise<Omit<User, 'passwordHash'>[]> {
+    return Array.from(this.users.values()).map(user => {
+      const { passwordHash, ...userWithoutPassword } = user;
+      return userWithoutPassword;
+    });
+  }
+
+  async updateUser(userId: number, updates: Partial<User>): Promise<Omit<User, 'passwordHash'> | null> {
+    const user = this.users.get(userId);
+
+    if (!user) {
+      return null;
+    }
+
+    // Update user properties
+    Object.assign(user, updates);
+    this.users.set(userId, user);
+
+    // Return user without password hash
+    const { passwordHash, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  }
+
+  async deleteUser(userId: number): Promise<boolean> {
+    if (!this.users.has(userId)) {
+      return false;
+    }
+
+    this.users.delete(userId);
+    return true;
   }
 
   // Report methods
@@ -291,4 +329,10 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+import { DbStorage } from './db-storage';
+
+// Use the database storage implementation in production
+// and memory storage for development if needed
+const useDbStorage = process.env.NODE_ENV === 'production' || process.env.USE_DB_STORAGE === 'true';
+
+export const storage = useDbStorage ? new DbStorage() : new MemStorage();
